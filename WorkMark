@@ -1,4 +1,20 @@
+2017-5-22
+
+Memo:
+    1.视频帧写入流程：write_video_frame-->get_video_frame-->av_init_packet-->avcodec_encode_video2-->write_frame
+
+Todo:
+    1.对muxing.c程序进行封装，使其可以自由设置格式和自定义数据。--------------------------------------------------------
+
+2017-5-19
+
+Done:
+    1.调通FFMpeg的示例程序muxing.c，可以运行和根据自定义数据生成视频数据，但里面的数据和格式都是写死的，后面需要进行改造
+
 2017-5-18
+
+Todo:
+    1.cuda、OpenCL
 
 Memo:
     1.在Ubuntu下，终于把Planetary Imager编译通过，可以生成可执行文件，可执行文件也可以打开。但还有两个问题，一是不知道怎么生成Qt的.pro文件，无法进行调试，二是打开可执行文件后的界面，和源代码中的怎么有点不一样，例如，recording panel这个界面，可执行文件中运行后的record界面和程序中的recordingpanel.ui就不太一样。
