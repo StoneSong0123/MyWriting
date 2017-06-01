@@ -1,7 +1,97 @@
+2017-6-1
+
+Done:
+    1.将HistogramShow设置为子窗口(SubWindow)，当主窗口关闭时，它也可以自动关闭。
+
+2017-5-31
+
+Memo:
+    1.OpenCL(Open Computing Language)，面向异构系统、通用目的、并行编程，提供了基于任务分割和数据分割的并行计算机制，扩展了GPU用于图形生成之外的能力。
+    2.OpenCL与CUDA，像是DirectX与OpenGL的关系。共同的目标都是通用并行计算，CUDA只能在NVIDIA的GPU上跑，OpenCL是忽略硬件的差异，CUDA的开发套件、库都比较成熟，OpenCL只有AMD的驱动相对成熟，CUDA使用C进行封装，使得对硬件了解不多也可以轻松上手，OpenCL則是針對硬件的應用程序開發接口，它能給程序員更多對硬件的控制權，但上手會較難一些。
+
+Done:
+    1.写电子邮件给Marco Gulino，咨询PlanetaryImager如何编译成.pro及调试的问题。
+    2.添加对保存为TIF文件的支持。
+    3.了解OpenCL与CUDA
+    4.直方图窗口关闭通知。
+    5.直方图可以显示R、G、B三条曲线
+
+2017-5-27
+
+Todo:
+    1.查找记录成MP4格式时的问题-----------------------------------------------------------------------------------------
+    2.通过返回值判断记录是否成功，函数的返回值需要补充一下
+    3.直方图显示的很多细节还需要处理------------------------------------------------------------------------------------
+
+Done:
+    1.测试封装C静态链接库功能
+    2.将FFMpegVideoRecorder创建成静态库
+    3.编译成静态库之后，却发现在Qt中依然不行，各种函数找不到，到处都是error: undefined reference to `avcodec_find_encoder'这样的错误。
+    4.使用封装成静态库的方法依旧不行，还是继续使用昨天封装的函数进行调试
+    5.av_ts2str和av_ts2timestr是timestamp.h中的宏，在编译到timestamp.h的时候，会报出找不到PRId64宏的错误，通过在VS中查看得知，PRId64宏是在inttypes.h中定义的(timestamp.h包含了common.h，common.h又包含了inttypes.h)，通过对比VS和QT中的inttypes.h后发现，VS调用的inttypes.h位于C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt路径下，而Qt的位于D:\Qt\Qt5.8.0_minGW530\Tools\mingw530_32\i686-w64-mingw32\include路径下，这两个文件的内容也不相同，VS中直接定义了#define PRId64       "lld"，而Qt中是在#if !defined(__cplusplus) || defined(__STDC_FORMAT_MACROS)下定义的，由于是C++程序，所以!defined(__cplusplus)为false，而__STDC_FORMAT_MACROS宏也没有被定义，所以这个if就没有被执行。通过查找资料可知，#define __STDC_FORMAT_MACROS这个宏是给C用的，C++如果要用，需要显式定义，手动添加#define __STDC_FORMAT_MACROS，再次编译，编译就通过了。(资料来源：http://blog.csdn.net/sukhoi27smk/article/details/38020425、http://blog.csdn.net/littlefang/article/details/8251668、http://blog.csdn.net/zhuweigangzwg/article/details/49799693，百度搜索__STDC_FORMAT_MACROS可得)
+    6.Qt中的已经编译好，可以记录视频，但是MP4格式还有点问题，无法打开
+    7.添加直方图显示控件
+    8.实现对直方图显示控件的调用，大致实现了直方图，但还有很多细节需要处理
+
+2017-5-26
+
+Done:
+    1.不再使用writeVideoData中的while循环来控制文件的完成，而是通过外部的for循环来控制。
+    2.功能已经实现，但是放到Qt中之后，出现了各种问题，而且错误项都是出在ffmpeg自己的头文件中的，无法解决。现打算先在VS中封装成dll，然后再由Qt调用。
+    3.测试封装C动态链接库功能
+
+2017-5-25
+
+Done:
+    1.初步了解了YUV的格式及YUV的压缩格式，YUV420是其中的一种压缩格式，需要了解YUV420的压缩原理，才能知道怎么由RGB转换成YUV420；
+    2.图像宽度的对齐，看来无论哪种图像格式，都免不了由对齐这一说，32位对齐可能是用地较多的，对于YUV来说，不但要计算Y的对齐值，还要计算U和V的对齐值，所以还是需要很小心的；
+    3.程序已经可以将RGB24的数据转换成YUV420格式，生成的图像文件也是正确的。
+    4.把数据作为参数传进去，图像数据使用外部传入的数据
+
+
+2017-5-24
+
+Todo:
+    1.在线程中实现将数据保存成视频
+    2.国际化(多语言支持)------------------------------------------------------------------------------------------------
+    3.由于生成的文件太大，而且不能保存成mp4，因此还是需要再次看看muxing程序，仍旧需要在muxing上入手
+
+Done:
+    1.在数据记录线程类DataRecordThread中添加对VideoRecorder的调用。
+    2.在 MainCtrl中添加对 DataRecordThread的调用，在UI中添加对记录视频功能的调用。
+    3.两处问题导致数据无法正确记录和显示出来：(1).recordVideoContinuous函数中忘记了加start()，导致线程退出后无法再次启动；(2).编码器的格式需要传递AV_CODEC_ID_RAWVIDEO，这个还不明白是什么回事。
+    4.这样可以记录数据了，但是数据怎么那么大呢，十几秒钟就上G了，而且不能保存成mp4格式，如果文件后缀是mp4就会崩溃。
+
+2017-5-23
+
+Done:
+    1.周会
+    2.将FFMpeg视频记录代码移至程序中
+
+本周计划：
+    1.完成记录视频功能，支持mp4和avi(注意超过4G时的情况)----------------------------------------------------------------
+    2.完成直方图功能----------------------------------------------------------------------------------------------------
+    3.图片增加支持FIT、TIF----------------------------------------------------------------------------------------------
+    4.了解OpenCL和CUDA--------------------------------------------------------------------------------------------------
+    5.向Planetary-Imager作者咨询建立工程和调试事宜----------------------------------------------------------------------
+
 2017-5-22
 
 Memo:
     1.视频帧写入流程：write_video_frame-->get_video_frame-->av_init_packet-->avcodec_encode_video2-->write_frame
+    2.muxing初始化流程：
+            av_register_all
+            -->avformat_alloc_output_context2
+            -->add_stream
+            -->open_video
+            -->av_dump_format
+            -->avio_open
+    3.zwaviwriter初始化流程
+            av_register_all
+            -->avformat_alloc_output_context2
+            -->av_init_packet
+            -->add_vidio_stream
+            -->avio_open
 
 Todo:
     1.对muxing.c程序进行封装，使其可以自由设置格式和自定义数据。--------------------------------------------------------
