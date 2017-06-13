@@ -1,9 +1,97 @@
+2017-6-13
+
+Todo:
+    1.研究FFMpeg数据格式的问题，AVI的不要压缩---------------------------------------------------------------------------
+    2.UI布局------------------------------------------------------------------------------------------------------------
+
+2017-6-12
+
+Done:
+    1.查找RAW16时崩溃的原因
+       先看QImage的构造函数
+       QImage::QImage(uchar *data, int width, int height, Format format, QImageCleanupFunction cleanupFunction = Q_NULLPTR, void *cleanupInfo = Q_NULLPTR)
+       在说明文档中，有这样一段话：
+       The buffer must remain valid throughout the life of the QImage and all copies that have not been modified or otherwise detached from the original buffer. The image does not delete the buffer at destruction. You can provide a function pointer cleanupFunction along with an extra pointer cleanupInfo that will be called when the last copy is destroyed.
+       也就是说，数据buffer不是在QImage构造完之后就没用了，而是其内存将与QImage一直关联着，直到QImage的生命周期结束。而且，QImage生命结束后还不会主动去释放buffer的内存，要么自己手动去释放，要么通过自己定义一个指向cleanupFunction的函数指针去释放。
+       在本程序中，QImage后续还在使用的时候，pNewDataBuff就已经被释放了，并且还被置成了Q_NULLPTR，所以后面在使用的QImage的时候就崩溃了。如果这里仅仅是delete而没有被置为Q_NULLPTR，后面可能不会崩溃，但图像显示是错的。
+    2.RAW16记录不下来FIT文件是因为FitsFileRW中没有添加对16bitpix数据格式的支持，已经添加，可以记录数据了。
+    3.RAW8时记录视频文件有内存泄漏可能是因为从RAW8转为RGB24时花的时间长，导致数据堆积。
+    4.还有一个原因是RGB转YUV420时时间也长
+    5.RAW8记录视频时内存泄漏的原因是①从RAW向RGB24转换时用的时间太长，②从RGB24向YUV420转换时用的时间太长，虽然无论是对于RAW8、RAW16还是RGB24，步骤②都是必须的，但是RGB24不需要步骤①，所以，在RGB24格式下，没有看到明显的内存泄漏，而在RAW8和RAW16格式，①和②的时间都很长，这就导致m_videoToRecordList会在长时间内得不到解锁，因此，当有新数据到来时，会一直等着解锁，也就造成了内存泄漏。由于后面的工作还要对FFMpegVideoRecorder进行改造，因此，②带来的问题暂时先不去处理，针对①带来的问题，目前的解决方案是  为m_videoToRecordList增加了个副本m_videoToRecordCopyList，每次处理时将m_videoToRecordList中的数据拷贝到m_videoToRecordCopyList中后就解锁，这样可以避免在调用saveAsVideo时m_videoToRecordList被锁时间太长。通过这种处理，内存泄漏的问题暂时得以解决。
+
+Todo:
+    1.测试时发现颜色空间调成RAW16时会崩溃
+    2.RAW16记录不下来FIT文件
+    3.RAW8时记录视频文件有内存泄漏
+
+2016-6-9
+
+Todo:
+    1.需要注意，现在图像数据格式在DataProc中就已经做了32位对齐处理，所有下游类在使用时需要注意，以免受影响--------------
+
+Done:
+    1.基本完成了对数据传输策略的改造，现在DataProcThread不再对数据进行软件ROI、转换成RGB888格式的操作，而仅仅是对图像数据做了32位对齐处理，就将图像传递给了下游类，下游各使用数据的类(包括图像显示类ImageShowInQt、数据记录线程类DataProcThread和直方图显示类HistogramShow)得到数据后，需根据图像的格式进行相应地处理。
+    2.改造完成后在测试时发现，记录静态图像时，第一张可以记录下来，记录第二张时就会出现问题。
+    3.修复bug：现象：记录照片时，记录完第一张，再记录第二张时，就记录不下来了，记录按钮一直是灰色。修复：原因是m_bIsThreadStopped初始化时被设置为false，导致记录第一张照片时就触动了while (!m_bIsThreadStopped)循环，这个循环一直退不出来，所以就卡在这里了。
+    4.又发现另外一个问题，记录视频文件时，无论是mp4还是avi，都会崩溃。
+    5.现在知道记录视频崩溃是因为向videoRecorderBegin函数中传递的imgType参数不对引起的，之前全部转换成RGB格式，所以这里默认就是RGB，现在有了各种格式，但是视频记录类忘记了做相应变化，因此就出现了问题。
+    6.FFMpegVideoRecorder的fill_yuv_image函数中，对数据格式g_video_data_format的判断，由原来的使用数字改为使用枚举。VideoRecorder::videoRecorderBegin中传入的数据格式的参数，由原来的数字改为枚举。在DataRecordThread::saveAsVideo中，会将数据统一转换成RGB格式的数据，调用VideoRecorder::videoRecorderBegin时，数据格式固定传入IMG_TYPE_RGB，目前还没有想好数据转换在哪里做比较合适，暂时先这么做。
+
+2017-6-8
+
+Memo:
+    1.修改数据传输策略，之前订的策略是，无论什么格式的数据，一律转换成RGB24格式的，现在看来还不行，因为后续环节对数据的需求各种各样，RGB24不能满足需求，还是需要传递数据原来的格式，在需要转的地方，哪儿需要就在哪儿转。
+
+Todo:
+    1.修改数据传输策略
+
+Done:
+    1.writeFitsFileTest可以运行，结果正确。
+    2.writeFitsFileTest调用 writeFitsFile，运行正常
+    3.writeFitsFile中添加addkey运行正常
+    4.在 writeFitsFileTest函数中测试addKey，运行正常
+    5.在 writeFitsFileTest 中调用 addKey的重载函数，运行也正常
+    6.把之前一直崩溃的QMap<QString, QString> m_mapKeyDesc也放开，测试之后也是正常，现在看来，在writeFitsFileTest函数中，之前所写的代码运行都是正常的
+    7.改成从外面传参数，又出现了各种问题，看来从类内部传参数都是正常的，一旦从类外面传参数，就会有问题，总结如下：1.文件名一开始用的是const QString &，传进去之后发现为空，后来改为QString；2、数据一开始用的是const valarray &，但传进去之后数据就没了，去掉&之后也不行，后来改为传入const char *，在类内部再将char *转为valarray；3、用于调用的Test类中，FitsFileRW.h中的各变量声明也要和原来的相一致，原本以为在Test类中，那些私有变量没有用，可以删掉，可是删掉之后程序就会崩溃。
+    8.添加 FitsFileRW动态库用于记录FITS文件，但由于FITS只能存灰度图像，而当前设计的数据流程传过来的是RGB图像，所以代码暂时还无法测试。后面还需要修改数据传输流程。
+    9.对CCfits的封装位于：E:\MyProjects\Qt5.8.0_minGW530\FitsFileRW\FitsFileRW，对封装之后的FitsFileRW的调用位于：E:\MyProjects\Qt5.8.0_minGW530\FitsFileRWTest
+
+
+2017-6-7
+
+Done:
+    1.昨天使用源码的方式调用CCfits已经成功，今天打算把CCfits再封装一下，封装成动态库，再由主程序调用，主要是不想把那么多的头文件和实现文件都加到主工程中去，没想到这么小的一个封装，竟然折腾了一天都没做好，封装之后各种问题频出，而且崩溃都是出在CCfits内部代码中，实在看不出是什么原因造成的。看来今天是搞不定了，但问题总要解决，只要一点一点调试了。今天是高考，本来智力应该达到巅峰的，却连小小的问题都解决不了，看来确实已经过了智力巅峰的阶段，开始走下坡路了。
+
+2017-6-6
+
+Done:
+    1.测试CCFits小程序，解决undefined reference to 的问题
+    2.解决“cmd.exe”已退出，代码为 3”的问题
+    3.在VS下测，CCFits是可以用的，demo已经跑通，但是在Qt下，始终是“error: undefined reference to...”的问题，无论是手动添加库还是从工程中选择，都是这样的问题。通过VS可以知道，库是没有问题的，那么问题可能还是出在Qt调用静态库上。
+    4.可以肯定问题出在静态库上，但什么原因，还不是很清楚，根据从网上找到的只言片语，有可能是因为生成CCfits库时的平台类型和Qt中mingw编译器的平台类型不符，导致库没有被识别出来。比较了一下自己在VS中建的静态库工程和CCfits经过CMake之后生成的工程，自己建的工程默认的解决方案平台是x86，而CCfits经过CMake之后自动生成的工程的解决方案平台是win32，除此之外，也没有别的差别，所以有可能是这个原因。
+    5.自己写了个小测试，在VS中生成了一个静态库，在Qt中调用，发现也是同样的问题，而在VS中调用是没有问题的，这说明是Qt在调用静态库时的使用方法上出现了问题，而不是库本身出了问题。
+    6.用同样的方法，生成动态库、调用动态库都是没问题的，就是静态库有问题，看来需要研究一下Qt调用VS静态库究竟有什么隐藏的问题。
+    7.自己用Qt写了个静态库，生成的静态库是.a格式的，而不是像VS那样是.lib格式的，用Qt调用Qt生成的静态库是没有问题的。
+    8.不再使用CCfits的静态库，改为使用源代码进行编译，但是cfitsio仍旧使用的是动态库，cfitsio也有源码，但是是用C写的，在使用时又牵涉到了令人头疼的字符串编码问题，因此暂时还是使用它的动态库吧，幸好它的动态库也是可用的。通过这种方式，今天下午终于编译通过，可以生成fits文件。程序位于：E:\MyProjects\Qt5.8.0_minGW530\CCFitsTest3\
+
+2017-6-5
+
+Done:
+    1.再次学习Planetary-Imager，学习CMakeLists.txt的用法，学习开源软件的调试方法。
+    2.CCFits可以读写FITS文件
+
+
 2017-6-2
+
+Todo:
+    1.帧率使用当前帧率
+    2.记录视频时，如果数据量太大，记不过来时需要做丢帧处理
 
 Done:
     1.信息显示不能再在UserDrawingLayer上做了，UserDrawingLayer为了做ROI方框，其位置和尺寸必须与ImageShowWidget相一致，当图像大于显示区域时，将使用滚动条，但是对于信息显示，其位置和大小要与显示区域相一致，不管滚动条怎么调整，信息显示都不能被遮住，因此需要一个新图层，用来显示信息。根据这个思路对界面进行了一些改造，添加了ShowWidget层，ImageShowScrollArea和infoShowWidget重叠放置于ShowWidget层，但是不知什么原因，ImageShowScrollArea的滚动条失灵了，没有找到解决方法，所以暂时先恢复成原来的样子。
     2.仍旧在UserDrawingLayer上实现提示信息显示，后面需要一个较大的改动，将UI中的每一部分都分级叠加起来。
     3.显示记录文件的信息。
+    4.记录视频时采用当前的瞬时帧率
 
 2017-6-1
 
