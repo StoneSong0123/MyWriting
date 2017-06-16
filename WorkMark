@@ -1,8 +1,34 @@
+2017-6-16
+
+Todo:
+    1.继续梳理昨天的流程
+
+2017-6-15
+
+Done:
+    1.录制视频文件添加对RAW16数据格式的支持，RAW16可以正确显示，但是RAW8显示的还是一片黑色。
+    2.没有找到具体原因，不知道RAW8为什么显示不出来，AV_PIX_FMT_GRAY8和AV_PIX_FMT_PAL8都试过了，都没用。可以肯定，不是数据的问题，做了个小测试，其他不变，将bits_per_coded_sample=8改为bits_per_coded_sample=16，图像是可以显示出来的，不过由于数据本身是RAW8的，所以显示出来的图像在宽度方向上被挤扁了，有效图像宽度变为原来的1/2，但是图像数据看上去是对的。
+    3.搞不定，貌似把bits_per_coded_sample设置成8之后图像显示的就是一片黑，但确确实实就应该是8啊。还有一点就是，如果视频文件是一片黑的那种，在Windows窗口中也显示不出来文件的信息，对于正常的文件，鼠标点上去之后，可以显示出来视频的高度、宽度、时长等，但是那种不正常的文件，就显示不出来，可能是在写文件头的时候出问题了吧。
+    4.由于怀疑bits_per_coded_sample设置不正确导致的一片黑色，从网上搜了个函数来计算bits_per_coded_sample，测试后发现，这么设置似乎也没错(http://cache.baiducontent.com/c?m=9f65cb4a8c8507ed4fece7631046893b4c4380146d96864968d4e414c42246041d6cf4bc53221207d0d82f2747f41802bded602571507be9dad58f4adabd902b298f33712d5cd04e42885feedc4755d627e44de8df5bb0fae733e3b9d5a7c855239b0e532dd6e78a2a1713be78f16470b0f9db1642&p=c074c54ad5c242ec0be2962449059d&newp=85769a4783934eac59eecd295a5080231610db2151d7da136b82c825d7331b001c3bbfb42324100fd9c178610baa4258eff43075330825a3dda5c91d9fb4c57479dd&user=baidu&fm=sc&query=bits%5Fper%5Fcoded%5Fsample+site%3Ablog%2Ecsdn%2Enet&qid=a474d9ca0001360e&p1=2)
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(st->codec->pix_fmt); 
+    int bits_per_coded_sample = av_get_bits_per_pixel(desc); 
+    5.对照雷神总结的流程，再查一下，看看能不能把这个问题解决了(http://blog.csdn.net/leixiaohua1020/article/details/25430425、http://blog.csdn.net/leixiaohua1020/article/details/44226355、http://blog.csdn.net/leixiaohua1020/article/details/44116215)
+    6.根据雷神的文章(http://blog.csdn.net/leixiaohua1020/article/details/11693997)，AVFrame和AVPacket都是用来存储一帧数据的，AVPacket存储解码前的数据，AVFrame存储解码后的数据，对于编码来说，那AVFrame应该就是存储编码前的数据，AVPacket应该就是存储编码后的数据。雷神提供的流程图中，多出的一步是avcodec_encode_video2()，用于编码一帧视频。即，将AVFrame编码为AVPacket(http://blog.csdn.net/leixiaohua1020/article/details/25430425、http://blog.csdn.net/leixiaohua1020/article/details/44226355)，本程序中没有使用AVFrame，直接用的AVPacket，不知道显示黑色是否与此有关。
+
+2017-6-14
+
+Done:
+    1.仅仅找到一种可以把RGB转换为YUV的方法(使用sws_scale函数)，但仍然没能解决编码的问题，录制出来的图像质量仍然很差。
+
 2017-6-13
+
+Memo:
+    1.在《YUV视频序列编码为视频》这篇文章中提到，“大多数的视频格式好像只支持YUV格式的视频帧AVFrame，我试图直接把RGB的视频序列直接编码到视频这条路好像走不通，都需要把RGB的视频帧再转成YUV视频帧才行”。(http://blog.csdn.net/yang_xian521/article/details/7698742)
 
 Todo:
     1.研究FFMpeg数据格式的问题，AVI的不要压缩---------------------------------------------------------------------------
     2.UI布局------------------------------------------------------------------------------------------------------------
+    3.发布内部测试版本--------------------------------------------------------------------------------------------------
 
 2017-6-12
 
@@ -96,7 +122,7 @@ Done:
 2017-6-1
 
 Todo:
-    1.图片支持FIT格式---------------------------------------------------------------------------------------------------
+    1.图片支持FIT格式
     2.记录视频时的帧率，根据当时的帧率进行设置，开始记录后，不允许调节ROI、图像空间、曝光时间(会影响帧率)等参数
     3.为防止乱点，应对按钮的使能情况做限制，记录静态图像时，点击记录之后，使按钮变灰，直到接到图像保存完成的事件，记录视频时，点击记录后，立即将按钮变为stop按钮，如果出现记录失败的情况，需要将按钮自动变回record按钮，点击停止后，使按钮变灰，直到接到视频记录完成的事件。
     4.记录完成后，应在界面上显示记录已完成及文件路径和文件名等信息。
