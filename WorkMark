@@ -1,3 +1,8 @@
+2016-6-26
+
+Done:
+    1.终于在Ubuntu下编译OACapture通过，见《ubuntu下编译OACapture》，编译完成之后，进行了测试，更改界面中的某个字符串，重新进行make和make install，新生成的程序中界面中字符串值确实有了改变。
+
 2017-6-16
 
 Todo:
