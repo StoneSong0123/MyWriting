@@ -1,9 +1,9 @@
 @echo off 
-echo begin to copy WorkMark,press any key to continue
+echo begin to copy files, press any key to continue
 
 pause
 
-copy /y "E:\Memo\自写文档\WorkMark" "E:\MyProjects\GitHub\MyWriting"
+xcopy /y /E "E:\资料\00已整理\备份\技术\自写文档" "E:\MyProjects\GitHub\MyWriting"
 
 echo copy over
 
