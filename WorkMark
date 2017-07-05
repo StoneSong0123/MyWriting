@@ -1,8 +1,20 @@
+2017-7-5
+
+Done:
+    1.添加文件记录面板UIRecording并添加对其的调用。
+
+2017-7-4
+
+Done:
+    1.添加相机控制面板UICameraCtrl并添加对UICameraCtrl的调用。
+
 2017-7-3
 
 Done:
     1.添加自定义控件UICameraInfo，用来显示相机的参数信息。
     2.QDockWidget是派生自QWidget的，在QMainWindow中可以通过addDockWidget添加QDockWidget，但是在QWidget中不可以，另外，QDialog中也没有addDockWidget函数。看来QDockWidget只能直接添加在主界面中，之前所想的把QDockWidget先封装在一个QWidget控件中，再把QWidget添加至主界面的想法是行不通的。
+    3.添加对UICameraInfo的调用，在主界面中添加cameraInfoDockWidget，并提升为UICameraInfo。
+    4.添加相机参数信息显示。同时，在MainWindow中，将函数分为UI部分和数据部分，UI部分专门用来接受控件的响应和对控件进行设置，数据部分用来处理数据部分，尽量做到UI部分只操作UI，其他处理放在数据部分做。
 
 2017-6-30
 
